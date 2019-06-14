@@ -401,35 +401,49 @@ class BaseGraph(object):
                 raise NotImplemented
             return dct
 
-    def _generate_lemma_to_nodes_dict(self):
+    def generate_lemma_to_nodes_dict_synsets(self):
         """
         This method generates a utility dictionary, which maps lemmas to
         corresponding node objects. It is expensive in menas of time
         needed to generate the dictionary. It should therefore be executed
-        at the beginning of the runtim and later its results should be reused
+        at the beginning of the runtime and later its results should be reused
         as many times as needed without re-executing the function.
         """
-        lemma_to_nodes_dict = dict()
+        lemma_to_nodes_dict = defaultdict(set)
         for node in self.all_nodes():
             try:
-                ns = node.synset
+                lu_set = node.synset.lu_set
             except KeyError:
                 continue
 
-            if ns:
-                try:
-                    lu_set = node.synset.lu_set
-                except Exception:
-                    continue
-
-                for lu in lu_set:
-                    # add mappings from the lemma to the node
-                    lemma = lu.lemma.lower()
-                    if lemma not in lemma_to_nodes_dict:
-                        lemma_to_nodes_dict[lemma] = set()
-                    lemma_to_nodes_dict[lemma].add(node)
+            for lu in lu_set:
+                lemma = lu.lemma.lower()
+                lemma_to_nodes_dict[lemma].add(node)
 
         self._lemma_to_nodes_dict = lemma_to_nodes_dict
+
+    def generate_lemma_to_nodes_dict_lexical_units(self):
+        """
+        This method generates a utility dictionary, which maps lemmas to
+        corresponding node objects. It is expensive in menas of time
+        needed to generate the dictionary. It should therefore be executed
+        at the beginning of the runtime and later its results should be reused
+        as many times as needed without re-executing the function.
+        """
+        lemma_to_nodes_dict = defaultdict(set)
+
+        for node in self.all_nodes():
+            try:
+                lemma = node.lu.lemma.lower()
+                lemma_to_nodes_dict[lemma].add(node)
+            except KeyError:
+                continue
+
+        self._lemma_to_nodes_dict = lemma_to_nodes_dict
+
+    @property
+    def lemma_to_nodes_dict(self):
+        return self._lemma_to_nodes_dict
 
     def _make_lu_on_v_dict(self):
         """
