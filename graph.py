@@ -436,7 +436,7 @@ class BaseGraph(object):
             try:
                 lemma = node.lu.lemma.lower()
                 lemma_to_nodes_dict[lemma].add(node)
-            except KeyError:
+            except:
                 continue
 
         self._lemma_to_nodes_dict = lemma_to_nodes_dict

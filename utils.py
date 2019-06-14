@@ -31,7 +31,7 @@ def load_impedance_table(path):
     return it
 
 
-def prepare_graph(graph_path):
+def load_graph(graph_path):
     graph = BaseGraph()
     graph.unpickle(graph_path)
     graph.generate_lemma_to_nodes_dict_lexical_units()
