@@ -127,7 +127,7 @@ class PaintBall:
 
     def _act_rep_trans(self, node, edge, activation_value, Q):
         if node == edge.target():
-            print "The same"
+            log("The same")
             return
         node = edge.target()
         log("\n# NODE {} : {:>15} - activation: {:>3} - lu_id: {:>5} #".format(node, node.lu.lemma, activation_value, node.lu.lu_id))
@@ -265,12 +265,13 @@ class PaintBall:
             for start_node, activation_value in T.items():
                 self._act_replication(start_node, activation_value, Q)
             
-            print("Q TABLE")
-            print(Q)
+            log("Q TABLE")
+            log(Q)
             lead_nodes = self.find_place_in_graph(Q, syn_graph)
 
+            print("\n\n# Attachment areas:")
             for node in lead_nodes:
-                print([lu.lemma for lu in node.synset.lu_set)
+                print("{};{};{};{}".format(source, node, node.synset.synset_id, [lu.lemma for lu in node.synset.lu_set]))
 
 
 class LemmaActivations(object):

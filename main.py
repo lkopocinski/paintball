@@ -9,7 +9,7 @@ from paint_ball import PaintBall, Params
 from plwn_utils import PLWN
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.ERROR, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -33,7 +33,7 @@ def main():
     params = Params(
         mikro=0.95,
         tau_0=0.5,
-        epsilon=0.05,
+        epsilon=(0.5/4),
         tau_3=2.5,
         tau_4=1
     )
@@ -49,7 +49,6 @@ def main():
 
     log("Loading synsets graph")
     syn_graph = load_graph(SYNSETS_GRAPH)
-   # syn_graph = None
 
     log("Run algorithm")
     pb.run(syn_graph)
