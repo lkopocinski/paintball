@@ -24,9 +24,10 @@ def load_impedance_table(path):
         for l in f:
             l = l.strip().split(',')
             row = l[0].strip()
+            row = int(row)
             it[row] = defaultdict(float)
             for i in range(1, len(headers)):
-                it[row][headers[i]] = float(l[i])
+                it[row][int(headers[i])] = float(l[i])
 
     return it
 

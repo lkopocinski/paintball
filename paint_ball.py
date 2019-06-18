@@ -2,14 +2,21 @@
 # -*- coding: utf-8 -*-
 
 import operator
+import logging
 
 import graph_tool as gt
 from graph_tool.topology import label_largest_component
 
 from collections import defaultdict, OrderedDict
 
+logger = logging.getLogger(__name__)
 
-class Params:
+
+def log(message):
+    logger.info(message)
+
+
+class Params(object):
     __slots__ = ['mikro', 'tau_0', 'epsilon', 'tau_3', 'tau_4']
 
     def __init__(self, mikro, tau_0, epsilon, tau_3, tau_4):
@@ -18,6 +25,20 @@ class Params:
         self.epsilon = epsilon
         self.tau_3 = tau_3
         self.tau_4 = tau_4
+
+    def __str__(self):
+        return "\tDecay - {}\n" \
+               "\tTau 0 - {}\n" \
+               "\tEpsilon - {}\n" \
+               "\tTau 3 - {}\n" \
+               "\tTau 4 - {}\n" \
+            .format(
+                self.mikro,
+                self.tau_0,
+                self.epsilon,
+                self.tau_3,
+                self.tau_4,
+            )
 
 
 class PaintBall:
@@ -56,17 +77,17 @@ class PaintBall:
     def make_transmitance_dict():
         transmitance = defaultdict(float)
 
-        transmitance[11] = 1        # hypernymy
-        transmitance[10] = 0.7      # hyponymy
-        transmitance[12] = 0.4      # antonymy
-        transmitance[14] = 0.6      # meronymy
-        transmitance[15] = 0.6      # holonymy
-        transmitance[13] = 1        # converse
-        transmitance[53] = 0.7      # feminity
-        transmitance[55] = 0.7      # young being
-        transmitance[57] = 0.7      # augmentativity
-        transmitance[888] = 1       # synonymy
-        transmitance[777] = 1       # synonymy bis
+        transmitance[11] = 1  # hypernymy
+        transmitance[10] = 0.7  # hyponymy
+        transmitance[12] = 0.4  # antonymy
+        transmitance[14] = 0.6  # meronymy
+        transmitance[15] = 0.6  # holonymy
+        transmitance[13] = 1  # converse
+        transmitance[53] = 0.7  # feminity
+        transmitance[55] = 0.7  # young being
+        transmitance[57] = 0.7  # augmentativity
+        transmitance[888] = 1  # synonymy
+        transmitance[777] = 1  # synonymy bis
 
         return transmitance
 
@@ -91,19 +112,35 @@ class PaintBall:
         return T
 
     def _act_replication(self, node, activation_value, Q):
+        log("\n# NODE {} : {:>15} - activation: {:>3} - lu_id: {:>5} #".format(node, node.lu.lemma, activation_value, node.lu.lu_id))
+        log("EDGES: ")
+        for edge in node.all_edges():
+            log("{:>20} ===> {:>20} lu_id: {:>5} node_id: {:>5} - weight: {:>3} - relation_id: {:>3} -".format(
+                node.lu.lemma, edge.target().lu.lemma, edge.target().lu.lu_id, edge.target(), edge.weight, edge.rel_id))
+
         if activation_value < self.epsilon:
+            log("Returning act_replication")
             return
 
         for edge in node.all_edges():
-            self._act_rep_trans(edge, self._f_T(edge, self.decay * activation_value), Q)
+            self._act_rep_trans(node, edge, self._f_T(edge, self.decay * activation_value), Q)
 
-    def _act_rep_trans(self, edge, activation_value, Q):
-        print("For edge with:", edge.target().lu.lemma, activation_value, "Edge weight:", edge.weight, edge.rel_id)
-        if activation_value < self.epsilon:
+    def _act_rep_trans(self, node, edge, activation_value, Q):
+        if node == edge.target():
+            print "The same"
+            return
+        node = edge.target()
+        log("\n# NODE {} : {:>15} - activation: {:>3} - lu_id: {:>5} #".format(node, node.lu.lemma, activation_value, node.lu.lu_id))
+        log("EDGES: ")
+        for edge in node.all_edges():
+            log("{:>20} ===> {:>20} lu_id: {:>5} node_id: {:>5} - weight: {:>3} - relation_id: {:>3} -".format(edge.source().lu.lemma, edge.target().lu.lemma, edge.target().lu.lu_id, edge.target(), edge.weight, edge.rel_id))
+
+        if activation_value < self.epsilon:            
+            log("Returning act_rep_trans")
             return
 
         for edge_prim in edge.target().all_edges():
-            self._act_rep_trans(edge_prim, self._f_I(edge, edge_prim, self._f_T(edge_prim, self.decay * activation_value)), Q)
+            self._act_rep_trans(node, edge_prim, self._f_I(edge, edge_prim, self._f_T(edge_prim, self.decay * activation_value)), Q)
 
         Q[edge.target()] = Q[edge.target()] + activation_value
 
@@ -111,29 +148,37 @@ class PaintBall:
         return edge.weight * activation_value
 
     def _f_I(self, edge_in, edge_out, activation_value):
+        val = self._get_impedance(edge_in.rel_id, edge_out.rel_id) * activation_value
+        log("{} {} impedance {}  activation {} \n".format(edge_in.rel_id, edge_out.rel_id, val, activation_value))
+
         return self._get_impedance(edge_in.rel_id, edge_out.rel_id) * activation_value
 
-    def _get_impedance(self, in_rel_in, out_rel_id):
+    def _get_impedance(self, in_rel_id, out_rel_id):
         try:
-            return self._impedance_table[in_rel_in][out_rel_id]
+            return self._impedance_table[in_rel_id][out_rel_id]
         except KeyError:
             return 1
 
     def find_place_in_graph(self, Q, syn_graph):
         Q_synset = self.synset_activation(Q)
+
+        log("\nQ_synset:")
+        for synset_id, activation in Q_synset.iteritems():
+            log("{} {}".format(synset_id, activation))
+
         lead_nodes = self.find_subgraphs(Q_synset, syn_graph)
         return lead_nodes
 
     def synset_activation(self, Q):
         _Q_synset = defaultdict(float)
 
-        for node, activation_value in Q.items():
+        for node, activation_value in Q.iteritems():
             synset_id = node.synset_id
             if synset_id != -1:
                 _Q_synset[synset_id] += activation_value
 
         Q_synset = defaultdict(float)
-        for synset_id, activation_value in Q_synset.items():
+        for synset_id, activation_value in _Q_synset.iteritems():
             activated = self._delta(1, activation_value, self.plwn.synset_len(synset_id))
             if activated:
                 Q_synset[synset_id] = activation_value
@@ -143,7 +188,7 @@ class PaintBall:
     def find_subgraphs(self, Q_synset, syn_graph):
         nodes = dict()
 
-        for syn_id, activation_value in Q_synset.items():
+        for syn_id, activation_value in Q_synset.iteritems():
             if activation_value > self.tau_3:
                 try:
                     node = syn_graph.get_node_for_synset_id(syn_id)
@@ -152,7 +197,7 @@ class PaintBall:
                     continue
 
         filt = syn_graph.use_graph_tool().new_vertex_property('boolean')
-        for vertex, node in nodes.items():
+        for vertex, node in nodes.iteritems():
             filt[vertex] = True
 
         g = gt.GraphView(syn_graph.use_graph_tool(), filt)
@@ -192,16 +237,17 @@ class PaintBall:
             yield sgv
 
     def _delta(self, h, n, s):
-        n_limit = 1.5   # 1.5
-        n_limit_2 = 2   # 2
+        n_limit = 1.5  # 1.5
+        n_limit_2 = 2  # 2
 
-        if ((n >= n_limit*h) and (s <= 2)) or ((n >= n_limit_2*h) and s > 2):
+        if ((n >= n_limit * h) and (s <= 2)) or ((n >= n_limit_2 * h) and s > 2):
             return True
         else:
             return False
 
     def run(self, syn_graph):
         for source, targets_supports in self._knowledge_source.items():
+            log("\nAttach - {} - to {} lemmas".format(source, len(targets_supports)))
             Q = defaultdict(float)
 
             lemma_activations = []
@@ -218,14 +264,16 @@ class PaintBall:
 
             for start_node, activation_value in T.items():
                 self._act_replication(start_node, activation_value, Q)
-
+            
+            print("Q TABLE")
+            print(Q)
             lead_nodes = self.find_place_in_graph(Q, syn_graph)
 
             for node in lead_nodes:
-                print(node.synset.lu_set)
+                print([lu.lemma for lu in node.synset.lu_set)
 
 
-class LemmaActivations:
+class LemmaActivations(object):
     __slots__ = ['lemma', 'nodes', 'activation']
 
     def __init__(self, lemma, nodes, activation):
