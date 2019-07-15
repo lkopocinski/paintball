@@ -31,10 +31,10 @@ def main():
 
     log("\nSetting params:")
     params = Params(
-        mikro=0.95,
-        tau_0=0.5,
+        mikro=0.80,
+        tau_0=0.45,
         epsilon=(0.5/4),
-        tau_3=2.5,
+        tau_3=1.2,
         tau_4=1
     )
     log(params)

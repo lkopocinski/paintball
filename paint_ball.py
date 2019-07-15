@@ -237,7 +237,7 @@ class PaintBall:
             yield sgv
 
     def _delta(self, h, n, s):
-        n_limit = 1.5  # 1.5
+        n_limit = 1.2  # 1.5
         n_limit_2 = 2  # 2
 
         if ((n >= n_limit * h) and (s <= 2)) or ((n >= n_limit_2 * h) and s > 2):
@@ -247,6 +247,7 @@ class PaintBall:
 
     def run(self, syn_graph):
         for source, targets_supports in self._knowledge_source.items():
+            # logger.error(source)
             log("\nAttach - {} - to {} lemmas".format(source, len(targets_supports)))
             Q = defaultdict(float)
 
@@ -269,9 +270,9 @@ class PaintBall:
             log(Q)
             lead_nodes = self.find_place_in_graph(Q, syn_graph)
 
-            print("\n\n# Attachment areas:")
+            print "\n{}".format(source)
             for node in lead_nodes:
-                print("{};{};{};{}".format(source, node, node.synset.synset_id, [lu.lemma for lu in node.synset.lu_set]))
+                print("{};{};{}".format(source, node.synset.synset_id, " ".join(lu.lemma for lu in node.synset.lu_set)))
 
 
 class LemmaActivations(object):
