@@ -1,7 +1,5 @@
-import os
-
 from collections import defaultdict
-from graph import BaseGraph
+from paintball.graph import BaseGraph
 from graph_tool.topology import shortest_distance
 import sys
 

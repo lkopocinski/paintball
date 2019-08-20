@@ -1,13 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import logging
 import sys
 
-from constants import PAINT_BALL_GRAPH, IMPEDANCE_TABLE, SYNSETS_GRAPH
-from utils import load_knowledge_source, load_graph, load_impedance_table
-from paint_ball import PaintBall, Params
-from plwn_utils import PLWN
-import logging
+from .constants import PAINT_BALL_GRAPH, IMPEDANCE_TABLE, SYNSETS_GRAPH
+from .paint_ball import PaintBall, Params
+from .plwn_utils import PLWN
+from .utils import load_knowledge_source, load_graph, load_impedance_table
 
 logging.basicConfig(level=logging.ERROR, format='%(message)s')
 logger = logging.getLogger(__name__)
@@ -19,7 +19,6 @@ def log(message):
 
 def main():
     log("Loading knowledge source")
-
     knowledge_source = load_knowledge_source(sys.argv[1])
 
     log("Loading paintball graph")
@@ -33,7 +32,7 @@ def main():
     params = Params(
         mikro=0.80,
         tau_0=0.45,
-        epsilon=(0.5/4),
+        epsilon=(0.5 / 4),
         tau_3=1.2,
         tau_4=1
     )
