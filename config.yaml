@@ -1,0 +1,3 @@
+knowledge_source: 'res/knowledge_source'
+graph: 'res/graph/paintball_lexical_units_graph.xml.gz'
+impedance_table: 'res/impedance/table.csv'
