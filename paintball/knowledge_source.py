@@ -6,7 +6,7 @@ class KnowledgeSource:
 
     def __init__(self, source_dir):
         self.source_path = Path(source_dir)
-        self.knowladge_dict = defaultdict(list)
+        self.knowledge_dict = defaultdict(dict)
 
     def load(self):
         for file_path in self.source_path.glob('*.tsv'):
@@ -16,4 +16,7 @@ class KnowledgeSource:
         with open(str(file_path), 'r') as f:
             for line in f:
                 source, target, support = line.strip().split('\t')
-                self.knowladge_dict[source].append((target, support))
+                try:
+                    self.knowledge_dict[source][target].append(support)
+                except:
+                    self.knowledge_dict[source][target] = [support]
