@@ -425,7 +425,7 @@ class BaseGraph(object):
     def generate_lemma_to_nodes_dict_lexical_units(self):
         """
         This method generates a utility dictionary, which maps lemmas to
-        corresponding node objects. It is expensive in menas of time
+        corresponding node objects. It is expensive in means of time
         needed to generate the dictionary. It should therefore be executed
         at the beginning of the runtime and later its results should be reused
         as many times as needed without re-executing the function.
