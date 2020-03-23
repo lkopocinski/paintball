@@ -1,8 +1,9 @@
 import logging
-from collections import defaultdict
 from pathlib import Path
 from typing import Dict
 
+import numpy as np
+import pandas as pd
 import yaml
 from graph import BaseGraph
 
@@ -18,37 +19,20 @@ def parse_config(path: Path) -> Dict:
             logger.exception(exception)
 
 
-def load_knowledge_source(path):
-    ks_dict = defaultdict(list)
+def load_impedance_table(path: Path):
+    impedance_table = pd.read_csv(path, header=0, index_col=0, dtype=np.float64)
 
-    with open(path, 'r') as f:
-        for line in f:
-            source, target, support = line.strip().split(';')
-            ks_dict[source].append((target, support))
+    has_missing_values = impedance_table.isna().values.any()
+    if has_missing_values:
+        raise ValueError("Impedance table malformed.")
 
-    return ks_dict
-
-
-def load_impedance_table(path):
-    it = defaultdict(lambda: defaultdict(float))
-
-    with open(path) as f:
-        headers = f.readline().strip().split(',')
-        headers = [h.strip() for h in headers]
-
-        for l in f:
-            l = l.strip().split(',')
-            row = l[0].strip()
-            row = int(row)
-            it[row] = defaultdict(float)
-            for i in range(1, len(headers)):
-                it[row][int(headers[i])] = float(l[i])
-
-    return it
+    impedance_table.columns = impedance_table.columns.astype(int)
+    impedance_table.index = impedance_table.index.astype(int)
+    return impedance_table.T
 
 
-def load_graph(graph_path):
+def load_graph(path: Path):
     graph = BaseGraph()
-    graph.unpickle(graph_path)
+    graph.unpickle(str(path))
     graph.generate_lemma_to_nodes_dict_lexical_units()
     return graph
