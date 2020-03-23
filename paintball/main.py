@@ -1,8 +1,13 @@
 #!/usr/bin/python3.8
 
-
 import logging
 import sys
+from pathlib import Path
+
+import click
+
+from paintball.utils import parse_config
+from paintball.knowledge_source import KnowledgeSource
 
 from .constants import PAINT_BALL_GRAPH, IMPEDANCE_TABLE, SYNSETS_GRAPH
 from .paint_ball import PaintBall, Params
@@ -13,13 +18,19 @@ logging.basicConfig(level=logging.ERROR, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 
-def log(message):
+def log(message: str):
     logger.info(message)
 
 
-def main():
+@click.command()
+@click.option('--config', required=True,
+              type=click.Path(exists=True),
+              help='Configuration file.')
+def main(config):
+    config = parse_config(Path(config))
+
     log("Loading knowledge source")
-    knowledge_source = load_knowledge_source(sys.argv[1])
+    knowledge_source = KnowledgeSource(config['knowledge_source'])
 
     log("Loading paintball graph")
     graph = load_graph(PAINT_BALL_GRAPH)

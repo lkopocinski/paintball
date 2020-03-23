@@ -1,22 +1,21 @@
-from collections import defaultdict
 from pathlib import Path
+
+import pandas as pd
 
 
 class KnowledgeSource:
+    EXT = '.tsv'
+    SEP = ';'
+    COLUMNS = ['source', 'target', 'support']
 
-    def __init__(self, source_dir):
-        self.source_path = Path(source_dir)
-        self.knowledge_dict = defaultdict(dict)
+    def __init__(self, source_dir: Path):
+        self._source_dir = source_dir
+        self._knowledge_df = self._load()
 
-    def load(self):
-        for file_path in self.source_path.glob('*.tsv'):
-            self._load_knowledge(file_path)
-
-    def _load_knowledge(self, file_path):
-        with open(str(file_path), 'r') as f:
-            for line in f:
-                source, target, support = line.strip().split('\t')
-                try:
-                    self.knowledge_dict[source][target].append(support)
-                except:
-                    self.knowledge_dict[source][target] = [support]
+    def _load(self) -> pd.DataFrame:
+        files_paths = self._source_dir.glob(f'*{self.EXT}')
+        data_frames = [
+            pd.read_csv(path, sep=self.SEP, columns=self.COLUMNS)
+            for path in files_paths
+        ]
+        return pd.concat(data_frames, ignore_index=True)
