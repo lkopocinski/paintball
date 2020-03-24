@@ -1,0 +1,11 @@
+11: 1.0  # hypernymy
+10: 0.7  # hyponymy
+12: 0.4  # antonymy
+14: 0.6  # meronymy
+15: 0.6  # holonymy
+13: 1.0  # converse
+53: 0.7  # femininity
+55: 0.7  # young being
+57: 0.7  # augmentative
+888: 1.0  # synonymy
+777: 1.0  # synonymy bis

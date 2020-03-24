@@ -11,12 +11,16 @@ logging.basicConfig(level=logging.ERROR, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 
-def parse_config(path: Path) -> Dict:
+def _load_yaml(path: Path) -> Dict:
     with path.open('r', encoding='utf-8') as stream:
         try:
             return yaml.safe_load(stream)
         except yaml.YAMLError as exception:
             logger.exception(exception)
+
+
+def parse_config(path: Path) -> Dict:
+    return load_graph(path)
 
 
 def load_impedance_table(path: Path):
@@ -29,6 +33,10 @@ def load_impedance_table(path: Path):
     impedance_table.columns = impedance_table.columns.astype(int)
     impedance_table.index = impedance_table.index.astype(int)
     return impedance_table.T
+
+
+def load_transmittance(path: Path) -> Dict:
+    return _load_yaml(path)
 
 
 def load_graph(path: Path):

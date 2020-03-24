@@ -43,13 +43,13 @@ class BaseNode(object):
 
     def __getattr__(self, name):
         """
-        allows acces to properties of graph
+        Allows access to properties of graph
         """
         return self._graph.vp[name][self._node]
 
     def __setattr__(self, name, value):
         """
-        allows acces to properties of graph
+        Allows access to properties of graph
         """
         if name in self.__slots__:
             super(BaseNode, self).__setattr__(name, value)
@@ -104,13 +104,13 @@ class BaseEdge(object):
 
     def __getattr__(self, name):
         """
-        allows acces to properties of graph
+        Allows access to properties of graph
         """
         return self._graph.ep[name][self._edge]
 
     def __setattr__(self, name, value):
         """
-        allows acces to properties of graph
+        Allows access to properties of graph
         """
         if name in self.__slots__:
             super(BaseEdge, self).__setattr__(name, value)
@@ -303,8 +303,8 @@ class BaseGraph(object):
 
     def get_edges_between(self, source, target):
         """
-        Return all edges between source and target. Source and target can be either
-        BaseNode or integer.
+        Return all edges between source and target.
+        Source and target can be either BaseNode or integer.
         """
         if isinstance(source, BaseNode):
             source = source._node
@@ -404,7 +404,7 @@ class BaseGraph(object):
     def generate_lemma_to_nodes_dict_synsets(self):
         """
         This method generates a utility dictionary, which maps lemmas to
-        corresponding node objects. It is expensive in menas of time
+        corresponding node objects. It is expensive in means of time
         needed to generate the dictionary. It should therefore be executed
         at the beginning of the runtime and later its results should be reused
         as many times as needed without re-executing the function.

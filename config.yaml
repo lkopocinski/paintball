@@ -1,3 +1,14 @@
-knowledge_source: 'res/knowledge_source'
 graph: 'res/graph/paintball_lexical_units_graph.xml.gz'
+synset_graph: 'res/graph/plwn_synsets_graph.xml.gz'
+
+knowledge_source: 'res/knowledge_source'
+
 impedance_table: 'res/impedance/table.csv'
+transmittance_table: 'res/transmittance/transmittance.yaml'
+
+params:
+  mikro: 0.80
+  tau_0: 0.45
+  epsilon: 0.125
+  tau_3: 1.2
+  tau_4: 1.0
