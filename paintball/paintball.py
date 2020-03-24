@@ -1,16 +1,16 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+#!/usr/bin/python3.8
+
 
 import logging
 import operator
 from collections import defaultdict, OrderedDict
-from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List
 
 import graph_tool as gt
 import pandas
 from graph_tool.topology import label_largest_component
 
+from paintball.entities import Params, LemmaActivations
 from paintball.graph import BaseGraph
 from paintball.knowledge_source import KnowledgeSource
 from paintball.plwn_utils import PLWN
@@ -20,15 +20,6 @@ logger = logging.getLogger(__name__)
 
 def log(message):
     logger.info(message)
-
-
-@dataclass
-class Params:
-    micro: float
-    tau_0: float
-    epsilon: float
-    tau_3: float
-    tau_4: float
 
 
 class PaintBall:
@@ -80,63 +71,60 @@ class PaintBall:
         for edge in self._graph.all_edges():
             edge.weight = transmittance.get(edge.rel_id, 0.0)
 
-    def _setup_initial_activation(self, lemma_activations):
+    def _setup_initial_activation(
+            self,
+            lemma_activations: List[LemmaActivations]
+    ):
+        nodes_activations = (
+            (node, la.activation)
+            for la in lemma_activations
+            for node in la.nodes
+        )
+
         Q = defaultdict(float)
+        for node, activation in nodes_activations:
+            Q[node] += activation
 
-        for la in lemma_activations:
-            for node in la.nodes:
-                Q[node] += la.activation
-
-        T = {node: activation for node, activation in Q.items() if
-             activation > self._tau_0}
+        T = {node: activation
+             for node, activation in Q.items()
+             if activation > self._tau_0}
         T = OrderedDict(
-            sorted(T.items(), key=operator.itemgetter(1), reverse=True))
+            sorted(T.items(), key=operator.itemgetter(1), reverse=True)
+        )
         return T
 
     def _act_replication(self, node, activation_value, Q):
-        log("\n# NODE {} : {:>15} - activation: {:>3} - lu_id: {:>5} #".format(
-            node, node.lu.lemma, activation_value, node.lu.lu_id))
-        log("EDGES: ")
-        for edge in node.all_edges():
-            log(
-                "{:>20} ===> {:>20} lu_id: {:>5} node_id: {:>5} - weight: {:>3} - relation_id: {:>3} -".format(
-                    node.lu.lemma, edge.target().lu.lemma,
-                    edge.target().lu.lu_id, edge.target(), edge.weight,
-                    edge.rel_id))
-
         if activation_value < self._epsilon:
-            log("Returning act_replication")
             return
 
         for edge in node.all_edges():
-            self._act_rep_trans(node, edge,
-                                self._f_T(edge, self._decay * activation_value),
-                                Q)
+            self._act_rep_trans(
+                node,
+                edge,
+                self._f_T(edge, self._decay * activation_value),
+                Q
+            )
 
     def _act_rep_trans(self, node, edge, activation_value, Q):
         if node == edge.target():
-            log("The same")
             return
+
         node = edge.target()
-        log("\n# NODE {} : {:>15} - activation: {:>3} - lu_id: {:>5} #".format(
-            node, node.lu.lemma, activation_value, node.lu.lu_id))
-        log("EDGES: ")
-        for edge in node.all_edges():
-            log(
-                "{:>20} ===> {:>20} lu_id: {:>5} node_id: {:>5} - weight: {:>3} - relation_id: {:>3} -".format(
-                    edge.source().lu.lemma, edge.target().lu.lemma,
-                    edge.target().lu.lu_id, edge.target(), edge.weight,
-                    edge.rel_id))
 
         if activation_value < self._epsilon:
-            log("Returning act_rep_trans")
             return
 
         for edge_prim in edge.target().all_edges():
-            self._act_rep_trans(node, edge_prim, self._f_I(edge, edge_prim,
-                                                           self._f_T(edge_prim,
-                                                                     self._decay * activation_value)),
-                                Q)
+            self._act_rep_trans(
+                node,
+                edge_prim,
+                self._f_I(
+                    edge,
+                    edge_prim,
+                    self._f_T(edge_prim, self._decay * activation_value)
+                ),
+                Q
+            )
 
         Q[edge.target()] = Q[edge.target()] + activation_value
 
@@ -144,14 +132,10 @@ class PaintBall:
         return edge.weight * activation_value
 
     def _f_I(self, edge_in, edge_out, activation_value):
-        val = self._get_impedance(edge_in.rel_id,
-                                  edge_out.rel_id) * activation_value
-        log("{} {} impedance {}  activation {} \n".format(edge_in.rel_id,
-                                                          edge_out.rel_id, val,
-                                                          activation_value))
-
-        return self._get_impedance(edge_in.rel_id,
-                                   edge_out.rel_id) * activation_value
+        impedance = self._get_impedance(
+            edge_in.rel_id, edge_out.rel_id
+        )
+        return impedance * activation_value
 
     def _get_impedance(self, in_rel_id, out_rel_id):
         try:
@@ -161,13 +145,7 @@ class PaintBall:
 
     def find_place_in_graph(self, Q, syn_graph):
         Q_synset = self.synset_activation(Q)
-
-        log("\nQ_synset:")
-        for synset_id, activation in Q_synset.iteritems():
-            log("{} {}".format(synset_id, activation))
-
-        lead_nodes = self.find_subgraphs(Q_synset, syn_graph)
-        return lead_nodes
+        return self.find_subgraphs(Q_synset, syn_graph)
 
     def synset_activation(self, Q):
         _Q_synset = defaultdict(float)
@@ -179,16 +157,18 @@ class PaintBall:
 
         Q_synset = defaultdict(float)
         for synset_id, activation_value in _Q_synset.iteritems():
-            activated = self._delta(1, activation_value,
-                                    self._plwn.synset_len(synset_id))
+            activated = self._delta(
+                1,
+                activation_value,
+                self._plwn.synset_len(synset_id)
+            )
             if activated:
                 Q_synset[synset_id] = activation_value
 
         return Q_synset
 
     def find_subgraphs(self, Q_synset, syn_graph):
-        nodes = dict()
-
+        nodes = {}
         for syn_id, activation_value in Q_synset.iteritems():
             if activation_value > self._tau_3:
                 try:
@@ -234,24 +214,17 @@ class PaintBall:
                 filt[v] = True
         gv = gt.GraphView(g, filt)
 
-        for sgv in self.subgraphs(gv):
-            yield sgv
+        yield from self.subgraphs(gv)
 
     def _delta(self, h, n, s):
         n_limit = 1.2  # 1.5
         n_limit_2 = 2  # 2
 
-        if ((n >= n_limit * h) and (s <= 2)) or (
-                (n >= n_limit_2 * h) and s > 2):
-            return True
-        else:
-            return False
+        return (((n >= n_limit * h) and (s <= 2))
+                or ((n >= n_limit_2 * h) and (s > 2)))
 
     def run(self, syn_graph):
         for source, targets_supports in self._knowledge_source.items():
-            # logger.error(source)
-            log("\nAttach - {} - to {} lemmas".format(source,
-                                                      len(targets_supports)))
             Q = defaultdict(float)
 
             lemma_activations = []
@@ -269,21 +242,9 @@ class PaintBall:
             for start_node, activation_value in T.items():
                 self._act_replication(start_node, activation_value, Q)
 
-            log("Q TABLE")
-            log(Q)
             lead_nodes = self.find_place_in_graph(Q, syn_graph)
 
-            print
-            "\n{}".format(source)
             for node in lead_nodes:
-                print("{};{};{}".format(source, node.synset.synset_id, " ".join(
-                    lu.lemma for lu in node.synset.lu_set)))
-
-
-class LemmaActivations(object):
-    __slots__ = ['lemma', 'nodes', 'activation']
-
-    def __init__(self, lemma, nodes, activation):
-        self.lemma = lemma
-        self.nodes = nodes
-        self.activation = float(activation)
+                lemmas = ' '.join(lu.lemma for lu in node.synset.lu_set)
+                synset_id = node.synset.synset_id
+                print(f'{source};{synset_id};{lemmas}')
